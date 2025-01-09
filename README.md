@@ -208,7 +208,169 @@ Si l'utilisateur lance avec des paramètres tels que :
 L'image retournée sera monochrome avec les couleurs rouge et verte *(voir ci-dessous)*
 
 !["Image monochorme rouge et verte"](./imgs/battle_of_the_bastards_rouge_vert.png)
-
 <br>
-
 *Image monochorme rouge et verte*
+
+## Partie 3
+
+### Question 9
+
+Afin de calculer la distance entre 2 couleurs, nous allons utiliser la distance euclidienne :
+
+$$ distanceCouleurs = {\sqrt{(r2-r1)^2 + (g2-g1)^2 + (b2-b1)^2}} $$
+
+avec couleur1 = (r1, g1, b1) et couleur2 = (r2, g2, b2)
+
+### Question 10
+
+Afin de pouvoir changer les couleurs de l'image avec une palette, voici comment faire :
+
+- Ajouter une option permettant à l'utilisateur de rentrer une palette personnalisée : 
+
+```rs
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="palette")]
+/// Rendu de l’image avec une palette contenant un nombre limité de couleurs
+struct OptsPalette {
+    /// le nombre de couleurs à utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
+    #[argh(option)]
+    n_couleurs: usize,
+
+    /// palette personnalisée fournie par l'utilisateur sous forme de chaîne (par exemple : "255,0,0;0,255,0;0,0,255")
+    #[argh(option)]
+    palette: Option<String>,
+}
+```
+
+- Ajouter une fonction permettant de récupérer une palette par défaut
+
+```rs
+fn get_couleurs_palette() -> Vec<Rgb<u8>> {
+    vec![
+        Rgb([0, 0, 0]),      // Noir
+        Rgb([255, 255, 255]), // Blanc
+        Rgb([255, 0, 0]),     // Rouge
+        Rgb([0, 255, 0]),     // Vert
+        Rgb([0, 0, 255]),     // Bleu
+        Rgb([255, 255, 0]),   // Jaune
+        Rgb([0, 255, 255]),   // Cyan
+        Rgb([255, 0, 255]),   // Magenta
+    ]
+}
+```
+
+- Ajouter une fonction permettant de récupérer les couleurs de la palette saisie par l'utilisateur :
+
+```rs
+fn parse_palette(palette_str: &str) -> Vec<Rgb<u8>> {
+    palette_str
+        .split(';')  // Séparer par des points-virgules (chaque couleur est séparée par un point-virgule)
+        .map(|color_str| {
+            let parts: Vec<u8> = color_str.split(',')
+                                          .map(|s| s.trim().parse().unwrap_or(0)) // Convertir chaque composant de couleur en u8
+                                          .collect();
+            Rgb([parts[0], parts[1], parts[2]]) // Retourner un objet Rgb
+        })
+        .collect()
+}
+```
+
+- Ajouter la fonction de distance entre deux couleurs :
+
+```rs
+fn distance_rgb(couleur1: Rgb<u8>, couleur2: Rgb<u8>) -> f32 {
+    let r_diff = couleur2[0] as f32 - couleur1[0] as f32;
+    let g_diff = couleur2[1] as f32 - couleur1[1] as f32;
+    let b_diff = couleur2[2] as f32 - couleur1[2] as f32;
+    (r_diff * r_diff + g_diff * g_diff + b_diff * b_diff).sqrt()
+}
+```
+
+- Ajouter la fonction permettant de traiter et modifier l'image :
+
+```rs
+fn traiter_palette(img: &mut RgbImage, palette: &[Rgb<u8>]) {
+    for y in 0..img.height() {
+        for x in 0..img.width() {
+            let pixel = *img.get_pixel(x, y);
+            // Trouver la couleur la plus proche dans la palette
+            let mut min_distance = f32::MAX;
+            let mut best_color = Rgb([0, 0, 0]);
+
+            for color in palette {
+                let dist = distance_rgb(pixel, *color);
+                if dist < min_distance {
+                    min_distance = dist;
+                    best_color = *color;
+                }
+            }
+            img.put_pixel(x, y, best_color);
+        }
+    }
+}
+```
+
+- Modifier la fonction **main** afin de prendre en compte ce nouveau Mode :
+
+```rs
+...
+match args.mode {
+        Mode::Seuil(_) => {
+            let (couleur1, couleur2) = get_couleurs_from_args(&args.mode);
+            traitement_monochrome(&mut mut_img_input_rgb, couleur1, couleur2);
+            mut_img_input_rgb.save(path_out).unwrap();
+        },
+        Mode::Palette(opts) => {
+            let palette = if let Some(palette_str) = opts.palette {
+                parse_palette(&palette_str)
+            } else {
+                // Si aucune palette n'est fournie, utiliser une palette par défaut
+                get_couleurs_palette().into_iter().take(opts.n_couleurs).collect()
+            };
+
+            // Vérifier si la palette est vide ou incorrecte
+            if palette.is_empty() {
+                eprintln!("Erreur : la palette ne peut pas être vide.");
+                return;
+            }
+
+            traiter_palette(&mut mut_img_input_rgb, &palette);
+            mut_img_input_rgb.save(path_out).unwrap();
+        }
+    }
+...
+```
+
+Ainsi, nous pouvons maintenant utiliser ce nouveau mode :
+
+- Exemple 1 : utilisation de la palette par défaut (pas de paramètres) avec 8 couleurs :
+
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 8```
+
+!["Image de Daenerys modifié avec 8 couleurs de la palette par défaut"](./imgs/daenerys_palette_default.png)
+<br>
+*Image de Daenerys modifié avec 8 couleurs de la palette par défaut*
+
+- Exemple 2 : utilisation de la palette par défaut (pas de paramètres) avec 4 couleurs :
+
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 4```
+
+!["Image de Daenerys modifié avec 4 couleurs de la palette par défaut"](./imgs/daenerys_palette_default_4.png)
+<br>
+*Image de Daenerys modifié avec 4 couleurs de la palette par défaut*
+
+- Exemple 3 : utilisation d'une palette personnalisée (Rouge, Bleu, Vert)'
+
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb.png palette --n-couleurs 3 --palette "255,0,0;0,255,0;0,0,255"```
+
+!["Image de Daenerys modifié avec une palette rouge, vert, bleu"](./imgs/daenerys_palette_rgb.png)
+<br>
+*Image de Daenerys modifié avec une palette rouge, vert, bleu*
+
+- Exemple 4 : utilisation d'une palette de 12 couleurs aléatoires'
+
+``` cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_aleatoire_12.png palette --n-couleurs 12 --palette "25,99,198;191,188,179;80,177,35;80,188,8;194,125,10;240,197,117;36,255,38;62,239,159;196,156,104;29,230,22;20,160,220;83,83,134"```
+
+!["Image de Daenerys modifié avec une palette de 12 couleurs aléatoires"](./imgs/daenerys_palette_rgb_aleatoire_12.png)
+<br>
+*Image de Daenerys modifié avec une palette de 12 couleurs aléatoires*
