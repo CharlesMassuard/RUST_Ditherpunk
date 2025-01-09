@@ -55,6 +55,13 @@ fn pixel_to_white(img: &mut RgbImage) {
 }
 ```
 
+*Note : Afin de modifier les datas d'une image, __&mut__ doit être utilisé. Ainsi, afin de lancer une fonction modifiant les datas de l'image telle que celle-ci, il faut tout d'abord la cloner en tant que mut et appeler la fonction avec :*
+
+```rs
+let mut mut_img_input_rgb = img_input_rgb.clone();
+pixel_to_white(&mut mut_img_input_rgb);
+```
+
 L'image obtenue est reconnaissable.
 
 ![Image de base](./imgs/tyrion.jpg)
@@ -65,6 +72,53 @@ L'image obtenue est reconnaissable.
 <br>
 *Image obtenue ayant 1 pixel sur 2 en blanc*
 
-!["Image montrant qu'un pixel sur deux est blanc](./imgs/preuve_un_pixel_sur_deux_blanc.png)
+!["Image montrant qu'un pixel sur deux est blanc"](./imgs/preuve_un_pixel_sur_deux_blanc.png)
 <br>
 *Image montrant qu'un pixel sur deux est blanc*
+
+
+## Partie 2
+
+### Question 6
+
+Afin de récupérer la luminosité d'un pixel, nous pouvons la calculer en calculant la moyenne de ces valeurs RGB :
+
+$$ luminositeMoyenne = {R + G + B \over 3} $$
+
+En Rust, cela correspond à :
+
+```rs
+fn get_luminosite_pixel(img: $image::RgbImage, x: u32, y: u32) -> f32 {
+    let pixel = img.get_pixel(x, y);
+    let r = pixel[0] as f32;
+    let g = pixel[1] as f32;
+    let b = pixel[2] as f32;
+    return (r+g+b) / 3.0;
+}
+```
+
+Avec ```img = rgb_img (stark_rgb.png)```, ```x = 32``` et ```y = 52```, on obtient :  
+
+```Luminosité du pixel en 32, 52 : 20.666666```
+
+### Question 7
+
+```rs
+fn traitement_monochrome(img: &mut RgbImage){
+    for y in 0..img.height() {
+        for x in 0..img.width() {
+            let luminosite = get_luminosite_pixel(img, x, y);
+            if luminosite > 128.0 {
+                img.put_pixel(x, y, Rgb([255, 255, 255]));
+            } else {
+                img.put_pixel(x, y, Rgb([0, 0, 0]));
+            }
+        }
+    }
+}
+```
+
+!["Image de Tyrion après le traitement monochrome en noir et blanc"](./imgs/tyrion_monochrome.png)
+
+<br>
+*Image de Tyrion après le traitement monochrome en noir et blanc*
