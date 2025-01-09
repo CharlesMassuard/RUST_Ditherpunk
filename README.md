@@ -1,5 +1,7 @@
 # VILLAIN Théo & MASSUARD Charles
 
+> *Les commandes (cargo build, cargo run) se faire dans **RUST_Ditherpunk/src** afin de fonctionner correctement.*
+
 ## Question 2
 
 - Ouverture de l'image :
@@ -19,7 +21,22 @@ let rgb_img = img.to_rgb8();
 Si l'image de départ a un canal alpha *(stark.png)*, l'image rgb8 sauvegardée *(stark_rgb.png)* n'a plus le canal alpha et donc sa transparence est supprimée. Nous remarquons qu'une partie de la transparence, ici l'arrière-plan, est remplie en blanc, tandis qu'une autre partie a des nuances de couleurs prenant en compte les couleurs de l'image de base.
 
 ![Image de base avec un canal alpha](./imgs/stark.png)
+<br>
 *Image de base avec un canal alpha*
 
 ![Image rgb8 obtenue](./imgs/stark_rgb.png)
+<br>
 *Image rgb8 obtenue*
+
+## Question 4
+
+```rs
+fn afficher_couleurs_pixel(img: &image::RgbImage, x: u32, y: u32) {
+    let pixel = img.get_pixel(x, y);
+    println!("Les couleurs du pixel ({}, {}) sont : {:?}", x, y, pixel);
+}
+```  
+
+Avec ```img = rgb_img (stark_rgb.png)```, ```x = 32``` et ```y = 52```, on obtient :  
+
+```Les couleurs du pixel (32, 52) sont : Rgb([20, 20, 22])```
