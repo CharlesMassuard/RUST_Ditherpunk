@@ -18,6 +18,15 @@ Ce type correspond à une image pouvant avoir différents formats de pixels et c
 let rgb_img = img.to_rgb8();
 ```
 
+- Ouverture de l'image passée en argument :
+```rs
+let args: DitherArgs = argh::from_env();
+let path_in = args.input;
+let path_out = args.output.unwrap_or_else(|| "output.png".to_string());
+
+let img_input = image::open(path_in).unwrap();
+```
+
 ### Question 3
 
 Si l'image de départ a un canal alpha *(stark.png)*, l'image rgb8 sauvegardée *(stark_rgb.png)* n'a plus le canal alpha et donc sa transparence est supprimée. Nous remarquons qu'une partie de la transparence, ici l'arrière-plan, est remplie en blanc, tandis qu'une autre partie a des nuances de couleurs prenant en compte les couleurs de l'image de base.
@@ -33,15 +42,14 @@ Si l'image de départ a un canal alpha *(stark.png)*, l'image rgb8 sauvegardée 
 ### Question 4
 
 ```rs
-fn afficher_couleurs_pixel(img: &image::RgbImage, x: u32, y: u32) {
-    let pixel = img.get_pixel(x, y);
-    println!("Les couleurs du pixel ({}, {}) sont : {:?}", x, y, pixel);
+fn get_couleurs_pixel(img: &RgbImage, x: u32, y: u32) -> Rgb<u8>{
+    *img.get_pixel(x, y)
 }
 ```  
 
 Avec ```img = rgb_img (stark_rgb.png)```, ```x = 32``` et ```y = 52```, on obtient :  
 
-```Les couleurs du pixel (32, 52) sont : Rgb([20, 20, 22])```
+```Rgb([20, 20, 22])```
 
 ### Question 5
 
@@ -119,6 +127,5 @@ fn traitement_monochrome(img: &mut RgbImage){
 ```
 
 !["Image de Tyrion après le traitement monochrome en noir et blanc"](./imgs/tyrion_monochrome.png)
-
 <br>
 *Image de Tyrion après le traitement monochrome en noir et blanc*
