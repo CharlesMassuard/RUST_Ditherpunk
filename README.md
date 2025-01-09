@@ -62,3 +62,7 @@ L'image obtenue est reconnaissable.
 ![Image obtenue ayant 1 pixel sur 2 en blanc](./imgs/tyrion_white.png)
 <br>
 *Image obtenue ayant 1 pixel sur 2 en blanc*
+
+!["Image montrant qu'un pixel sur deux est blanc](./imgs/preuve_un_pixel_sur_deux_blanc.png)
+<br>
+*Image montrant qu'un pixel sur deux est blanc*
