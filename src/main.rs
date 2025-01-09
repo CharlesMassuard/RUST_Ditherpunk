@@ -1,6 +1,53 @@
 use image::{RgbImage, Rgb};
 
+
+use argh::FromArgs;
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+/// Convertit une image en monochrome ou vers une palette rÃ©duite de couleurs.
+struct DitherArgs {
+
+    /// le fichier dâentrÃ©e
+    #[argh(positional)]
+    input: String,
+
+    /// le fichier de sortie (optionnel)
+    #[argh(positional)]
+    output: Option<String>,
+
+    /// le mode dâopÃ©ration
+    #[argh(subcommand)]
+    mode: Mode
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand)]
+enum Mode {
+    Seuil(OptsSeuil),
+    Palette(OptsPalette),
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="seuil")]
+/// Rendu de lâimage par seuillage monochrome.
+struct OptsSeuil {}
+
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="palette")]
+/// Rendu de lâimage avec une palette contenant un nombre limitÃ© de couleurs
+struct OptsPalette {
+
+    /// le nombre de couleurs Ã  utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
+    #[argh(option)]
+    n_couleurs: usize
+}
+
 fn main() {
+    let args: DitherArgs = argh::from_env();
+    let path_in = args.input;
+
+
     // ouvrir image
     let img = image::open("../imgs/stark.png").unwrap();
 
@@ -27,7 +74,7 @@ fn afficher_couleurs_pixel(img: &image::RgbImage, x: u32, y: u32) {
 
 fn pixel_to_white(img: &mut RgbImage) {
     for (x, y, pixel) in img.enumerate_pixels_mut() {
-        if (x + y) % 2 == 0 { // Si la somme des coordonnées est paire
+        if (x + y) % 2 == 0 { // Si la somme des coordonnÃ©es est paire
             *pixel = Rgb([255, 255, 255]); // Blanc
         }
     }
