@@ -28,6 +28,13 @@ enum Mode {
 #[argh(subcommand, name="seuil")]
 /// Rendu de l’image par seuillage monochrome.
 struct OptsSeuil {
+    /// la couleur1 choisie par l'utilisateur pour le seuil monochrome
+    #[argh(option)]
+    couleur1 : Option<String>,
+
+    /// la couleur2 choisie par l'utilisateur pour le seuil monochrome
+    #[argh(option)]
+    couleur2 : Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -37,6 +44,32 @@ struct OptsPalette {
     /// le nombre de couleurs à utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
     #[argh(option)]
     n_couleurs: usize,
+}
+
+
+// Fonction pour récupérer les couleurs à partir des arguments
+fn get_couleurs_from_args(mode: &Mode) -> (Rgb<u8>, Rgb<u8>) {
+    match mode {
+        Mode::Seuil(opts) => {
+            let couleur1 = opts.couleur1.clone().unwrap_or_else(|| "0,0,0".to_string()); // Valeur par défaut noire
+            let couleur2 = opts.couleur2.clone().unwrap_or_else(|| "255,255,255".to_string()); // Valeur par défaut blanche
+
+            // Conversion des chaînes en Rgb
+            let couleur1 = parse_rgb(&couleur1);
+            let couleur2 = parse_rgb(&couleur2);
+
+            (couleur1, couleur2)
+        },
+        _ => (Rgb([0, 0, 0]), Rgb([255, 255, 255])), // Valeurs par défaut si pas de couleur spécifiée
+    }
+}
+
+// Fonction pour convertir une chaîne de caractères en Rgb<u8>
+fn parse_rgb(rgb_str: &str) -> Rgb<u8> {
+    let parts: Vec<u8> = rgb_str.split(',')
+                                .map(|s| s.trim().parse().unwrap_or(0)) // Parse chaque partie en u8
+                                .collect();
+    Rgb([parts[0], parts[1], parts[2]])
 }
 
 fn main(){
@@ -49,9 +82,12 @@ fn main(){
     let img_input_rgb = img_input.to_rgb8();
     let mut mut_img_input_rgb = img_input_rgb.clone();
 
-    traitement_monochrome(&mut mut_img_input_rgb);
-
-    mut_img_input_rgb.save(path_out).unwrap();
+    //verifier si le mode est Seuil
+    if let Mode::Seuil(_) = args.mode {
+        let (couleur1, couleur2) = get_couleurs_from_args(&args.mode);
+        traitement_monochrome(&mut mut_img_input_rgb, couleur1, couleur2);
+        mut_img_input_rgb.save(path_out).unwrap();
+    }
 }
 
 fn get_couleurs_pixel(img: &RgbImage, x: u32, y: u32) -> Rgb<u8> {
@@ -74,14 +110,14 @@ fn get_luminosite_pixel(img: &mut RgbImage, x: u32, y: u32) -> f32 {
     return (r+g+b) / 3.0;
 }
 
-fn traitement_monochrome(img: &mut RgbImage){
+fn traitement_monochrome(img: &mut RgbImage, couleur1: Rgb<u8>, couleur2: Rgb<u8>){
     for y in 0..img.height() {
         for x in 0..img.width() {
             let luminosite = get_luminosite_pixel(img, x, y);
             if luminosite > 128.0 {
-                img.put_pixel(x, y, Rgb([255, 255, 255]));
+                img.put_pixel(x, y, Rgb(couleur2.0));
             } else {
-                img.put_pixel(x, y, Rgb([0, 0, 0]));
+                img.put_pixel(x, y, Rgb(couleur1.0));
             }
         }
     }
