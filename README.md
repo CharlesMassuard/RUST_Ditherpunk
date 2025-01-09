@@ -40,3 +40,25 @@ fn afficher_couleurs_pixel(img: &image::RgbImage, x: u32, y: u32) {
 Avec ```img = rgb_img (stark_rgb.png)```, ```x = 32``` et ```y = 52```, on obtient :  
 
 ```Les couleurs du pixel (32, 52) sont : Rgb([20, 20, 22])```
+
+## Question 5
+
+```rs
+fn pixel_to_white(img: &mut RgbImage) {
+    for (x, y, pixel) in img.enumerate_pixels_mut() {
+        if (x + y) % 2 == 0 { // Si la somme des coordonnées est paire
+            *pixel = Rgb([255, 255, 255]); // Blanc
+        }
+    }
+}
+```
+
+L'image obtenue est reconnaissable.
+
+![Image de base](./imgs/tyrion.jpg)
+<br>
+*Image de base*
+
+![Image obtenue ayant 1 pixel sur 2 en blanc](./imgs/tyrion_white.png)
+<br>
+*Image obtenue ayant 1 pixel sur 2 en blanc*
