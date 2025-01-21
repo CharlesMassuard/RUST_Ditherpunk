@@ -343,34 +343,139 @@ match args.mode {
 
 Ainsi, nous pouvons maintenant utiliser ce nouveau mode :
 
-- Exemple 1 : utilisation de la palette par défaut (pas de paramètres) avec 8 couleurs :
-
-```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 8```
-
-!["Image de Daenerys modifié avec 8 couleurs de la palette par défaut"](./imgs/daenerys_palette_default.png)
+!["Image de base utilisée pour les prochains exemples"](./imgs/daenerys.jpeg)
 <br>
-*Image de Daenerys modifié avec 8 couleurs de la palette par défaut*
-
-- Exemple 2 : utilisation de la palette par défaut (pas de paramètres) avec 4 couleurs :
-
-```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 4```
-
-!["Image de Daenerys modifié avec 4 couleurs de la palette par défaut"](./imgs/daenerys_palette_default_4.png)
+*Image de base utilisée pour les prochains exemples*  
 <br>
-*Image de Daenerys modifié avec 4 couleurs de la palette par défaut*
 
-- Exemple 3 : utilisation d'une palette personnalisée (Rouge, Bleu, Vert)'
+- Exemple 1 : utilisation d'une palette personnalisée (Rouge, Bleu, Vert) :
 
 ```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb.png palette --n-couleurs 3 --palette "255,0,0;0,255,0;0,0,255"```
 
-!["Image de Daenerys modifié avec une palette rouge, vert, bleu"](./imgs/daenerys_palette_rgb.png)
+!["Image de Daenerys modifiée avec une palette rouge, vert, bleu"](./imgs/daenerys_palette_rgb.png)
 <br>
-*Image de Daenerys modifié avec une palette rouge, vert, bleu*
+*Image de Daenerys modifiée avec une palette rouge, vert, bleu*
 
-- Exemple 4 : utilisation d'une palette de 12 couleurs aléatoires'
+- Exemple 2 : utilisation d'une palette de 12 couleurs aléatoires :
 
-``` cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_aleatoire_12.png palette --n-couleurs 12 --palette "25,99,198;191,188,179;80,177,35;80,188,8;194,125,10;240,197,117;36,255,38;62,239,159;196,156,104;29,230,22;20,160,220;83,83,134"```
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_aleatoire_12.png palette --n-couleurs 12 --palette "25,99,198;191,188,179;80,177,35;80,188,8;194,125,10;240,197,117;36,255,38;62,239,159;196,156,104;29,230,22;20,160,220;83,83,134"```
 
-!["Image de Daenerys modifié avec une palette de 12 couleurs aléatoires"](./imgs/daenerys_palette_rgb_aleatoire_12.png)
+!["Image de Daenerys modifiée avec une palette de 12 couleurs aléatoires"](./imgs/daenerys_palette_rgb_aleatoire_12.png)
 <br>
-*Image de Daenerys modifié avec une palette de 12 couleurs aléatoires*
+*Image de Daenerys modifiée avec une palette de 12 couleurs aléatoires*
+
+> *Note: jusqu'à maintenant, nous avons vu que les couleurs sont choisies avec leurs __codes rgb__. On ajoute maintenant la possibilité de choisir les couleurs avec leurs nom (en anglais)*
+
+• Importation des librairies nécessaires :
+
+```toml
+colorconv = "0.1.0"
+```
+
+```rs
+use colorconv::Color;
+use std::str::FromStr;
+```
+
+• Modification de la fonction **parse_palette** :
+
+```rs
+fn parse_palette(palette_str: &str) -> Vec<Rgb<u8>> {
+    if let Some(first_char) = palette_str.chars().next() {
+        if !first_char.is_digit(10) {
+            return palette_str
+                .split(";")
+                .map(|color_str| {
+                    match Color::from_str(color_str) {
+                        Ok(color) => Rgb(color.rgb),
+                        Err(e) => {
+                            eprintln!("{:?}", e);
+                            Rgb([0, 0, 0])
+                        }
+                    }
+                })
+                .collect();
+        }
+    }
+
+    palette_str
+        .split(';')  // Séparer par des points-virgules (chaque couleur est séparée par un point-virgule)
+        .map(|color_str| {
+            let parts: Vec<u8> = color_str.split(',')
+                                          .map(|s| s.trim().parse().unwrap_or(0)) // Convertir chaque composant de couleur en u8
+                                          .collect();
+            Rgb([parts[0], parts[1], parts[2]]) // Retourner un objet Rgb
+        })
+        .collect()
+}
+```
+
+Maintenant, l'utilisateur peut soit rentré une palette de codes rgb, soit une palette de couleurs en anglais.
+
+- Exemple 3 : utilisation des couleurs **red**, **yellow** et **purple** :
+
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_nameColors.png palette --n-couleurs 4 --palette "cyan;blue;green;red"```
+
+!["Image de Daenerys modifiée avec une palette des couleurs cyan, blue, green et red définies avec leurs noms"](./imgs/daenerys_palette_rgb_nameColors.png)
+<br>
+*Image de Daenerys modifiée avec une palette des couleurs cyan, blue, green et red définies avec leurs noms*
+
+### Question 11
+
+Si l'utilisateur ne rentre pas de palette, une palette par défaut est utilisée.
+
+- Exemple 1 : utilisation de la palette par défaut (palette vide) avec 8 couleurs :
+
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 8```
+
+!["Image de Daenerys modifiée avec 8 couleurs de la palette par défaut"](./imgs/daenerys_palette_default.png)
+<br>
+*Image de Daenerys modifiée avec 8 couleurs de la palette par défaut*
+
+- Exemple 2 : utilisation de la palette par défaut (palette vide) avec 4 couleurs :
+
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 4```
+
+!["Image de Daenerys modifiée avec 4 couleurs de la palette par défaut"](./imgs/daenerys_palette_default_4.png)
+<br>
+*Image de Daenerys modifiée avec 4 couleurs de la palette par défaut*
+
+## Partie 4
+
+• Ajout des librairies :
+
+```toml
+rand = "0.8"
+``` 
+
+```rs
+use rand::Rng;
+```
+
+• Ajout de la fonction de tramage aléatoire :
+
+```rs
+fn tramage_aleatoire(img: &mut RgbImage){
+    let mut rng = rand::thread_rng(); 
+    for y in 0..img.height() {
+        for x in 0..img.width() {
+            let seuil: f32 = rng.gen();
+            let luminosite = get_luminosite_pixel(img, x, y);
+            if luminosite/255.0 > seuil {
+                img.put_pixel(x, y, Rgb([255, 255, 255]));
+            } else {
+                img.put_pixel(x, y, Rgb([0, 0, 0]));
+            }
+        }
+    }
+}
+```
+
+!["Image de Daenerys modifiée avec un tramage aléatoire"](./imgs/daenerys_tramage.png)
+<br>
+*Image de Daenerys modifiée avec un tramage aléatoire*
+
+## Partie 7
+
+### Question 21
+

@@ -1,5 +1,8 @@
 use image::{RgbImage, Rgb};
 use argh::FromArgs;
+use colorconv::Color;
+use std::str::FromStr;
+use rand::Rng;
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
 /// Convertit une image en monochrome ou vers une palette réduite de couleurs.
@@ -45,7 +48,7 @@ struct OptsPalette {
     #[argh(option)]
     n_couleurs: usize,
 
-    /// palette personnalisée fournie par l'utilisateur sous forme de chaîne (par exemple : "255,0,0;0,255,0;0,0,255")
+    /// palette personnalisée fournie par l'utilisateur sous forme de chaîne (par exemple : "255,0,0;0,255,0;0,0,255" ou "red;yellow;purple")
     #[argh(option)]
     palette: Option<String>,
 }
@@ -90,6 +93,23 @@ fn parse_rgb(rgb_str: &str) -> Rgb<u8> {
 
 
 fn parse_palette(palette_str: &str) -> Vec<Rgb<u8>> {
+    if let Some(first_char) = palette_str.chars().next() {
+        if !first_char.is_digit(10) {
+            return palette_str
+                .split(";")
+                .map(|color_str| {
+                    match Color::from_str(color_str) {
+                        Ok(color) => Rgb(color.rgb),
+                        Err(e) => {
+                            eprintln!("{:?}", e);
+                            Rgb([0, 0, 0])
+                        }
+                    }
+                })
+                .collect();
+        }
+    }
+
     palette_str
         .split(';')  // Séparer par des points-virgules (chaque couleur est séparée par un point-virgule)
         .map(|color_str| {
@@ -118,20 +138,18 @@ fn main() {
         },
         Mode::Palette(opts) => {
             let palette = if let Some(palette_str) = opts.palette {
-                parse_palette(&palette_str)
+                if palette_str.trim().is_empty() {
+                    get_couleurs_palette().into_iter().take(opts.n_couleurs).collect()
+                } else {
+                    parse_palette(&palette_str)
+                }
             } else {
-                // Si aucune palette n'est fournie, utiliser une palette par défaut
+                // Si aucune palette n'est fournie, utiliser la palette par défaut
                 get_couleurs_palette().into_iter().take(opts.n_couleurs).collect()
             };
 
-            // Vérifier si la palette est vide ou incorrecte
-            if palette.is_empty() {
-                eprintln!("Erreur : la palette ne peut pas être vide.");
-                return;
-            }
-
             traiter_palette(&mut mut_img_input_rgb, &palette);
-            mut_img_input_rgb.save(path_out).unwrap();
+            mut_img_input_rgb.save(&path_out).expect("Erreur lors de l'enregistrement de l'image");
         }
     }
 }
@@ -193,6 +211,21 @@ fn traiter_palette(img: &mut RgbImage, palette: &[Rgb<u8>]) {
                 }
             }
             img.put_pixel(x, y, best_color);
+        }
+    }
+}
+
+fn tramage_aleatoire(img: &mut RgbImage){
+    let mut rng = rand::thread_rng(); 
+    for y in 0..img.height() {
+        for x in 0..img.width() {
+            let seuil: f32 = rng.gen();
+            let luminosite = get_luminosite_pixel(img, x, y);
+            if luminosite/255.0 > seuil {
+                img.put_pixel(x, y, Rgb([255, 255, 255]));
+            } else {
+                img.put_pixel(x, y, Rgb([0, 0, 0]));
+            }
         }
     }
 }
