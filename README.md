@@ -479,3 +479,108 @@ fn tramage_aleatoire(img: &mut RgbImage){
 
 ### Question 21
 
+```
+USAGE:
+
+    cargo run -- [img_input] [img_output] [SUBCOMMAND] [OPTION]```
+
+OPTIONS:
+
+    --n-couleurs                    Nombre de couleurs à utiliser pour redessiner l'image (avec la palette)
+    --palette                       Couleurs à utiliser pour redessiner l'image
+    --couleur1                      Couleur 1 avec laquelle redessiner l'image quand on utilise le seuil
+    --couleur2                      Couleur 2 avec laquelle redessiner l'image quand on utilise le seuil
+
+SUBCOMMANDS:
+
+    seuil                           Redessiner l'image avec un seuil
+    palette                         Redessiner l'image avec une palette
+
+EXAMPLES:
+
+    cargo run -- ./imgs/tyrion.jpg ./imgs/tyrion_monochrome_sans_param.png seuil
+    cargo run -- ./imgs/battle_of_the_bastards.jpg ./imgs/battle_of_the_bastards_rouge_vert.png seuil --couleur1 "255, 0, 0" --couleur2 "0, 255, 0"
+    cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 4
+    cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_nameColors.png palette --n-couleurs 4 --palette "cyan;blue;green;red"
+    cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb.png palette --n-couleurs 3 --palette "255,0,0;0,255,0;0,0,255"
+```
+
+### Question 22
+
+Les options sont définies par `Option<Type>`.
+Si l'entrée est obligatoire, c'est défini avec `<Type>`.
+
+Exemple : **input** et **mode** sont obligatoires, **output** est optionnel
+
+```rs
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+/// Convertit une image en monochrome ou vers une palette réduite de couleurs.
+struct DitherArgs {
+    /// le fichier d’entrée
+    #[argh(positional)]
+    input: String,
+
+    /// le fichier de sortie (optionnel)
+    #[argh(positional)]
+    output: Option<String>,
+
+    /// le mode d’opération
+    #[argh(subcommand)]
+    mode: Mode,
+}
+```
+
+### Question 23
+
+Implémentation faite tout au long du TP :
+
+```rs
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+/// Convertit une image en monochrome ou vers une palette réduite de couleurs.
+struct DitherArgs {
+    /// le fichier d’entrée
+    #[argh(positional)]
+    input: String,
+
+    /// le fichier de sortie (optionnel)
+    #[argh(positional)]
+    output: Option<String>,
+
+    /// le mode d’opération
+    #[argh(subcommand)]
+    mode: Mode,
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand)]
+enum Mode {
+    Seuil(OptsSeuil),
+    Palette(OptsPalette),
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="seuil")]
+/// Rendu de l’image par seuillage monochrome.
+struct OptsSeuil {
+    /// la couleur1 choisie par l'utilisateur pour le seuil monochrome
+    #[argh(option)]
+    couleur1 : Option<String>,
+
+    /// la couleur2 choisie par l'utilisateur pour le seuil monochrome
+    #[argh(option)]
+    couleur2 : Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="palette")]
+/// Rendu de l’image avec une palette contenant un nombre limité de couleurs
+struct OptsPalette {
+    /// le nombre de couleurs à utiliser, dans la liste [NOIR, BLANC, ROUGE, VERT, BLEU, JAUNE, CYAN, MAGENTA]
+    #[argh(option)]
+    n_couleurs: usize,
+
+    /// palette personnalisée fournie par l'utilisateur sous forme de chaîne (par exemple : "255,0,0;0,255,0;0,0,255" ou "red;yellow;purple")
+    #[argh(option)]
+    palette: Option<String>,
+}
+```
