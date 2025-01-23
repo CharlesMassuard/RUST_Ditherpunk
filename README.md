@@ -554,7 +554,7 @@ fn apply_ordered_dithering(img: &mut RgbImage, bayer_matrix: &[Vec<f32>]) {
 ```
 USAGE:
 
-    cargo run -- [img_input] [img_output] [SUBCOMMAND] [OPTION]```
+    cargo run -- [img_input] [img_output] [SUBCOMMAND] [OPTION]
 
 OPTIONS:
 
