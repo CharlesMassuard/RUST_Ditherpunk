@@ -641,6 +641,9 @@ struct DitherArgs {
 enum Mode {
     Seuil(OptsSeuil),
     Palette(OptsPalette),
+    Ordered(OptsOrdered),
+    PixelToWhite(OptsPixelToWhite),
+    TramageAleatoire(OptsTramageAleatoire),
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -668,4 +671,23 @@ struct OptsPalette {
     #[argh(option)]
     palette: Option<String>,
 }
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="ordered")]
+/// Rendu de l’image avec la méthode ordered dithering (matrice de Bayer).
+struct OptsOrdered {
+    /// l'ordre de la matrice de Bayer à utiliser
+    #[argh(option, default = "2")]
+    ordre: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="pixel_to_white")]
+/// Mode sans option pour convertir les pixels en blanc.
+struct OptsPixelToWhite {}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="tramage_aleatoire")]
+/// Mode sans option pour convertir les pixels en blanc.
+struct OptsTramageAleatoire {}
 ```
