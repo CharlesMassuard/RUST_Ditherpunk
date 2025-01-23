@@ -475,6 +475,28 @@ fn tramage_aleatoire(img: &mut RgbImage){
 <br>
 *Image de Daenerys modifiée avec un tramage aléatoire*
 
+## Partie 5
+
+### Question 13
+
+\[
+B_3 = \frac{1}{64} \begin{bmatrix}
+0 & 32 & 8 & 40 & 2 & 34 & 10 & 42 \\
+48 & 16 & 56 & 24 & 50 & 18 & 58 & 26 \\
+12 & 44 & 4 & 36 & 14 & 46 & 6 & 38 \\
+60 & 28 & 52 & 20 & 62 & 30 & 54 & 22 \\
+3 & 35 & 11 & 43 & 1 & 33 & 9 & 41 \\
+51 & 19 & 59 & 27 & 49 & 17 & 57 & 25 \\
+15 & 47 & 7 & 39 & 13 & 45 & 5 & 37 \\
+63 & 31 & 55 & 23 & 61 & 29 & 53 & 21
+\end{bmatrix}
+\]
+
+### Question 15
+
+!["Image de Daenerys modifiée avec le ordered dithering](./imgs/daenerys_ordered.png)
+
+
 ## Partie 7
 
 ### Question 21
@@ -490,11 +512,13 @@ OPTIONS:
     --palette                       Couleurs à utiliser pour redessiner l'image
     --couleur1                      Couleur 1 avec laquelle redessiner l'image quand on utilise le seuil
     --couleur2                      Couleur 2 avec laquelle redessiner l'image quand on utilise le seuil
+    --ordre                         Ordre à utiliser pour le ordered dithering
 
 SUBCOMMANDS:
 
     seuil                           Redessiner l'image avec un seuil
     palette                         Redessiner l'image avec une palette
+    ordered                         Redessiner l'image avec le ordered dithering
 
 EXAMPLES:
 
@@ -503,6 +527,7 @@ EXAMPLES:
     cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 4
     cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_nameColors.png palette --n-couleurs 4 --palette "cyan;blue;green;red"
     cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb.png palette --n-couleurs 3 --palette "255,0,0;0,255,0;0,0,255"
+    cargo run -- .\imgs\daenerys.jpeg .\imgs\daenerys_ordered.png ordered --ordre 3 
 ```
 
 ### Question 22

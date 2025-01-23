@@ -25,6 +25,7 @@ struct DitherArgs {
 enum Mode {
     Seuil(OptsSeuil),
     Palette(OptsPalette),
+    Ordered(OptsOrdered),
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -53,6 +54,15 @@ struct OptsPalette {
     palette: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="ordered")]
+/// Rendu de l’image avec la méthode ordered dithering (matrice de Bayer).
+struct OptsOrdered {
+    /// l'ordre de la matrice de Bayer à utiliser
+    #[argh(option, default = "2")]
+    ordre: usize,
+}
+
 fn get_couleurs_palette() -> Vec<Rgb<u8>> {
     vec![
         Rgb([0, 0, 0]),      // Noir
@@ -66,31 +76,27 @@ fn get_couleurs_palette() -> Vec<Rgb<u8>> {
     ]
 }
 
-// Fonction pour récupérer les couleurs à partir des arguments
 fn get_couleurs_from_args(mode: &Mode) -> (Rgb<u8>, Rgb<u8>) {
     match mode {
         Mode::Seuil(opts) => {
-            let couleur1 = opts.couleur1.clone().unwrap_or_else(|| "0,0,0".to_string()); // Valeur par défaut noire
-            let couleur2 = opts.couleur2.clone().unwrap_or_else(|| "255,255,255".to_string()); // Valeur par défaut blanche
+            let couleur1 = opts.couleur1.clone().unwrap_or_else(|| "0,0,0".to_string());
+            let couleur2 = opts.couleur2.clone().unwrap_or_else(|| "255,255,255".to_string());
 
-            // Conversion des chaînes en Rgb
             let couleur1 = parse_rgb(&couleur1);
             let couleur2 = parse_rgb(&couleur2);
 
             (couleur1, couleur2)
         },
-        _ => (Rgb([0, 0, 0]), Rgb([255, 255, 255])), // Valeurs par défaut si pas de couleur spécifiée
+        _ => (Rgb([0, 0, 0]), Rgb([255, 255, 255])),
     }
 }
 
-// Fonction pour convertir une chaîne de caractères en Rgb<u8>
 fn parse_rgb(rgb_str: &str) -> Rgb<u8> {
     let parts: Vec<u8> = rgb_str.split(',')
-                                .map(|s| s.trim().parse().unwrap_or(0)) // Parse chaque partie en u8
+                                .map(|s| s.trim().parse().unwrap_or(0))
                                 .collect();
     Rgb([parts[0], parts[1], parts[2]])
 }
-
 
 fn parse_palette(palette_str: &str) -> Vec<Rgb<u8>> {
     if let Some(first_char) = palette_str.chars().next() {
@@ -111,14 +117,51 @@ fn parse_palette(palette_str: &str) -> Vec<Rgb<u8>> {
     }
 
     palette_str
-        .split(';')  // Séparer par des points-virgules (chaque couleur est séparée par un point-virgule)
+        .split(';')
         .map(|color_str| {
             let parts: Vec<u8> = color_str.split(',')
-                                          .map(|s| s.trim().parse().unwrap_or(0)) // Convertir chaque composant de couleur en u8
+                                          .map(|s| s.trim().parse().unwrap_or(0))
                                           .collect();
-            Rgb([parts[0], parts[1], parts[2]]) // Retourner un objet Rgb
+            Rgb([parts[0], parts[1], parts[2]])
         })
         .collect()
+}
+
+fn build_bayer_matrix(order: usize) -> Vec<Vec<f32>> {
+    if order == 0 {
+        return vec![vec![0.0]];
+    }
+    let prev = build_bayer_matrix(order - 1);
+    let size = 1 << (order - 1);
+    let scale = 1.0 / (size * size) as f32;
+    let mut matrix = vec![vec![0.0; size * 2]; size * 2];
+
+    for y in 0..size {
+        for x in 0..size {
+            let value = prev[y][x] * 4.0;
+            matrix[y][x] = value * scale;
+            matrix[y][x + size] = (value + 2.0) * scale;
+            matrix[y + size][x] = (value + 3.0) * scale;
+            matrix[y + size][x + size] = (value + 1.0) * scale;
+        }
+    }
+    matrix
+}
+
+fn apply_ordered_dithering(img: &mut RgbImage, bayer_matrix: &[Vec<f32>]) {
+    let matrix_size = bayer_matrix.len() as u32;
+    for y in 0..img.height() {
+        for x in 0..img.width() {
+            let pixel = img.get_pixel(x, y);
+            let lum = get_luminosite_pixel(img, x, y) / 255.0;
+            let threshold = bayer_matrix[(y % matrix_size) as usize][(x % matrix_size) as usize];
+            if lum > threshold {
+                img.put_pixel(x, y, Rgb([255, 255, 255]));
+            } else {
+                img.put_pixel(x, y, Rgb([0, 0, 0]));
+            }
+        }
+    }
 }
 
 fn main() {
@@ -144,16 +187,19 @@ fn main() {
                     parse_palette(&palette_str)
                 }
             } else {
-                // Si aucune palette n'est fournie, utiliser la palette par défaut
                 get_couleurs_palette().into_iter().take(opts.n_couleurs).collect()
             };
 
             traiter_palette(&mut mut_img_input_rgb, &palette);
             mut_img_input_rgb.save(&path_out).expect("Erreur lors de l'enregistrement de l'image");
+        },
+        Mode::Ordered(opts) => {
+            let bayer_matrix = build_bayer_matrix(opts.ordre);
+            apply_ordered_dithering(&mut mut_img_input_rgb, &bayer_matrix);
+            mut_img_input_rgb.save(path_out).unwrap();
         }
     }
 }
-
 
 fn get_couleurs_pixel(img: &RgbImage, x: u32, y: u32) -> Rgb<u8> {
     *img.get_pixel(x, y)
@@ -161,8 +207,8 @@ fn get_couleurs_pixel(img: &RgbImage, x: u32, y: u32) -> Rgb<u8> {
 
 fn pixel_to_white(img: &mut RgbImage) {
     for (x, y, pixel) in img.enumerate_pixels_mut() {
-        if (x + y) % 2 == 0 { // Si la somme des coordonnées est paire
-            *pixel = Rgb([255, 255, 255]); // Blanc
+        if (x + y) % 2 == 0 {
+            *pixel = Rgb([255, 255, 255]);
         }
     }
 }
@@ -172,10 +218,10 @@ fn get_luminosite_pixel(img: &mut RgbImage, x: u32, y: u32) -> f32 {
     let r = pixel[0] as f32;
     let g = pixel[1] as f32;
     let b = pixel[2] as f32;
-    return (r+g+b) / 3.0;
+    (r + g + b) / 3.0
 }
 
-fn traitement_monochrome(img: &mut RgbImage, couleur1: Rgb<u8>, couleur2: Rgb<u8>){
+fn traitement_monochrome(img: &mut RgbImage, couleur1: Rgb<u8>, couleur2: Rgb<u8>) {
     for y in 0..img.height() {
         for x in 0..img.width() {
             let luminosite = get_luminosite_pixel(img, x, y);
@@ -199,7 +245,6 @@ fn traiter_palette(img: &mut RgbImage, palette: &[Rgb<u8>]) {
     for y in 0..img.height() {
         for x in 0..img.width() {
             let pixel = *img.get_pixel(x, y);
-            // Trouver la couleur la plus proche dans la palette
             let mut min_distance = f32::MAX;
             let mut best_color = Rgb([0, 0, 0]);
 
@@ -221,7 +266,7 @@ fn tramage_aleatoire(img: &mut RgbImage){
         for x in 0..img.width() {
             let seuil: f32 = rng.gen();
             let luminosite = get_luminosite_pixel(img, x, y);
-            if luminosite/255.0 > seuil {
+            if luminosite / 255.0 > seuil {
                 img.put_pixel(x, y, Rgb([255, 255, 255]));
             } else {
                 img.put_pixel(x, y, Rgb([0, 0, 0]));
