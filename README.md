@@ -471,6 +471,8 @@ fn tramage_aleatoire(img: &mut RgbImage){
 }
 ```
 
+```cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_tramage.png tramage_aleatoire```
+
 !["Image de Daenerys modifiée avec un tramage aléatoire"](./imgs/daenerys_tramage.png)
 <br>
 *Image de Daenerys modifiée avec un tramage aléatoire*
@@ -492,9 +494,57 @@ B_3 = \frac{1}{64} \begin{bmatrix}
 \end{bmatrix}
 \]
 
+### Question 14
+
+Nous pouvons représenter la matrice de Bayer par un vecteur de vecteurs de flottants.
+
+Pour créer une matrice d'ordre arbitraire, on peut utiliser la récursion.
+
 ### Question 15
 
-!["Image de Daenerys modifiée avec le ordered dithering](./imgs/daenerys_ordered.png)
+```rs
+fn build_bayer_matrix(order: usize) -> Vec<Vec<f32>> {
+    if order == 0 {
+        return vec![vec![0.0]];
+    }
+    let prev = build_bayer_matrix(order - 1);
+    let size = 1 << (order - 1);
+    let scale = 1.0 / (size * size) as f32;
+    let mut matrix = vec![vec![0.0; size * 2]; size * 2];
+
+    for y in 0..size {
+        for x in 0..size {
+            let value = prev[y][x] * 4.0;
+            matrix[y][x] = value * scale;
+            matrix[y][x + size] = (value + 2.0) * scale;
+            matrix[y + size][x] = (value + 3.0) * scale;
+            matrix[y + size][x + size] = (value + 1.0) * scale;
+        }
+    }
+    matrix
+}
+
+fn apply_ordered_dithering(img: &mut RgbImage, bayer_matrix: &[Vec<f32>]) {
+    let matrix_size = bayer_matrix.len() as u32;
+    for y in 0..img.height() {
+        for x in 0..img.width() {
+            let pixel = img.get_pixel(x, y);
+            let lum = get_luminosite_pixel(img, x, y) / 255.0;
+            let threshold = bayer_matrix[(y % matrix_size) as usize][(x % matrix_size) as usize];
+            if lum > threshold {
+                img.put_pixel(x, y, Rgb([255, 255, 255]));
+            } else {
+                img.put_pixel(x, y, Rgb([0, 0, 0]));
+            }
+        }
+    }
+}
+```
+
+
+!["Image de Daenerys modifiée avec le ordered dithering"](./imgs/daenerys_ordered.png)
+
+*Image de Daenerys modifiée avec le ordered dithering*
 
 
 ## Partie 7
@@ -516,18 +566,28 @@ OPTIONS:
 
 SUBCOMMANDS:
 
+    pixel_to_white                  Redessiner l'image avec un pixel sur deux en blanc
     seuil                           Redessiner l'image avec un seuil
     palette                         Redessiner l'image avec une palette
+    tramage_aleatoire               Redessiner l'image avec un tramage aléatoire
     ordered                         Redessiner l'image avec le ordered dithering
 
 EXAMPLES:
+    cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_blanche.png pixel_to_white
 
     cargo run -- ./imgs/tyrion.jpg ./imgs/tyrion_monochrome_sans_param.png seuil
+
     cargo run -- ./imgs/battle_of_the_bastards.jpg ./imgs/battle_of_the_bastards_rouge_vert.png seuil --couleur1 "255, 0, 0" --couleur2 "0, 255, 0"
+
     cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_default.png palette --n-couleurs 4
+
     cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb_nameColors.png palette --n-couleurs 4 --palette "cyan;blue;green;red"
+
     cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_palette_rgb.png palette --n-couleurs 3 --palette "255,0,0;0,255,0;0,0,255"
-    cargo run -- .\imgs\daenerys.jpeg .\imgs\daenerys_ordered.png ordered --ordre 3 
+
+    cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_tramage_option.png tramage_aleatoire
+
+    cargo run -- ./imgs/daenerys.jpeg ./imgs/daenerys_ordered.png ordered --ordre 3
 ```
 
 ### Question 22

@@ -26,6 +26,8 @@ enum Mode {
     Seuil(OptsSeuil),
     Palette(OptsPalette),
     Ordered(OptsOrdered),
+    PixelToWhite(OptsPixelToWhite),
+    TramageAleatoire(OptsTramageAleatoire),
 }
 
 #[derive(Debug, Clone, PartialEq, FromArgs)]
@@ -62,6 +64,16 @@ struct OptsOrdered {
     #[argh(option, default = "2")]
     ordre: usize,
 }
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="pixel_to_white")]
+/// Mode sans option pour convertir les pixels en blanc.
+struct OptsPixelToWhite {}
+
+#[derive(Debug, Clone, PartialEq, FromArgs)]
+#[argh(subcommand, name="tramage_aleatoire")]
+/// Mode sans option pour convertir les pixels en blanc.
+struct OptsTramageAleatoire {}
 
 fn get_couleurs_palette() -> Vec<Rgb<u8>> {
     vec![
@@ -197,7 +209,15 @@ fn main() {
             let bayer_matrix = build_bayer_matrix(opts.ordre);
             apply_ordered_dithering(&mut mut_img_input_rgb, &bayer_matrix);
             mut_img_input_rgb.save(path_out).unwrap();
-        }
+        },
+        Mode::PixelToWhite(_) => {
+            pixel_to_white(&mut mut_img_input_rgb);
+            mut_img_input_rgb.save(path_out).unwrap();
+        },
+        Mode::TramageAleatoire(_) => {
+            tramage_aleatoire(&mut mut_img_input_rgb);
+            mut_img_input_rgb.save(path_out).unwrap();
+        },
     }
 }
 
